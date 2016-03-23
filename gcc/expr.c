@@ -8637,7 +8637,7 @@ expand_expr_real_2 (sepops ops, rtx target, machine_mode tmode,
 	{
 	  machine_mode innermode = TYPE_MODE (TREE_TYPE (treeop0));
 	  this_optab = usmul_widen_optab;
-	  if (find_widening_optab_handler (this_optab, mode, innermode, 0)
+	  if (find_widening_optab_handler (this_optab, mode, innermode)
 		!= CODE_FOR_nothing)
 	    {
 	      if (TYPE_UNSIGNED (TREE_TYPE (treeop0)))
@@ -8672,7 +8672,7 @@ expand_expr_real_2 (sepops ops, rtx target, machine_mode tmode,
 
 	  if (TREE_CODE (treeop0) != INTEGER_CST)
 	    {
-	      if (find_widening_optab_handler (this_optab, mode, innermode, 0)
+	      if (find_widening_optab_handler (this_optab, mode, innermode)
 		    != CODE_FOR_nothing)
 		{
 		  expand_operands (treeop0, treeop1, NULL_RTX, &op0, &op1,
@@ -8694,7 +8694,7 @@ expand_expr_real_2 (sepops ops, rtx target, machine_mode tmode,
 					       unsignedp, this_optab);
 		  return REDUCE_BIT_FIELD (temp);
 		}
-	      if (find_widening_optab_handler (other_optab, mode, innermode, 0)
+	      if (find_widening_optab_handler (other_optab, mode, innermode)
 		    != CODE_FOR_nothing
 		  && innermode == word_mode)
 		{
