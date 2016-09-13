@@ -2033,8 +2033,8 @@ cselib_lookup_1 (rtx x, machine_mode mode,
 		&& GET_MODE_SIZE (GET_MODE (l->elt->val_rtx))
 		   > GET_MODE_SIZE (mode)
 		&& (lwider == NULL
-		    || GET_MODE_SIZE (GET_MODE (l->elt->val_rtx))
-		       < GET_MODE_SIZE (GET_MODE (lwider->elt->val_rtx))))
+		    || partial_subreg_p (GET_MODE (l->elt->val_rtx),
+					 GET_MODE (lwider->elt->val_rtx))))
 	      {
 		struct elt_loc_list *el;
 		if (i < FIRST_PSEUDO_REGISTER
