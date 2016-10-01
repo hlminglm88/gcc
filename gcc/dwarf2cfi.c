@@ -1138,18 +1138,19 @@ dwarf2out_frame_debug_def_cfa (rtx pat)
 {
   memset (cur_cfa, 0, sizeof (*cur_cfa));
 
-  if (GET_CODE (pat) == PLUS)
+  poly_int64 offset;
+  if (GET_CODE (pat) == PLUS && poly_int_const_p (XEXP (pat, 1), &offset))
     {
-      cur_cfa->offset = INTVAL (XEXP (pat, 1));
+      cur_cfa->offset = offset;
       pat = XEXP (pat, 0);
     }
   if (MEM_P (pat))
     {
       cur_cfa->indirect = 1;
       pat = XEXP (pat, 0);
-      if (GET_CODE (pat) == PLUS)
+      if (GET_CODE (pat) == PLUS && poly_int_const_p (XEXP (pat, 1), &offset))
 	{
-	  cur_cfa->base_offset = INTVAL (XEXP (pat, 1));
+	  cur_cfa->base_offset = offset;
 	  pat = XEXP (pat, 0);
 	}
     }
@@ -1174,7 +1175,7 @@ dwarf2out_frame_debug_adjust_cfa (rtx pat)
     {
     case PLUS:
       gcc_assert (dwf_regno (XEXP (src, 0)) == cur_cfa->reg);
-      cur_cfa->offset -= INTVAL (XEXP (src, 1));
+      cur_cfa->offset -= rtx_to_poly_int64 (XEXP (src, 1));
       break;
 
     case REG:
@@ -1211,7 +1212,7 @@ dwarf2out_frame_debug_cfa_offset (rtx set)
       break;
     case PLUS:
       gcc_assert (dwf_regno (XEXP (addr, 0)) == cur_cfa->reg);
-      offset = INTVAL (XEXP (addr, 1)) - cur_cfa->offset;
+      offset = rtx_to_poly_int64 (XEXP (addr, 1)) - cur_cfa->offset;
       break;
     default:
       gcc_unreachable ();
@@ -1680,19 +1681,14 @@ dwarf2out_frame_debug_expr (rtx expr)
 	    {
 	      /* Rule 2 */
 	      /* Adjusting SP.  */
-	      switch (GET_CODE (XEXP (src, 1)))
+	      if (GET_CODE (XEXP (src, 1)) == REG)
 		{
-		case CONST_INT:
-		  offset = INTVAL (XEXP (src, 1));
-		  break;
-		case REG:
 		  gcc_assert (dwf_regno (XEXP (src, 1))
 			      == cur_trace->cfa_temp.reg);
 		  offset = cur_trace->cfa_temp.offset;
-		  break;
-		default:
-		  gcc_unreachable ();
 		}
+	      else
+		offset = rtx_to_poly_int64 (XEXP (src, 1));
 
 	      if (XEXP (src, 0) == hard_frame_pointer_rtx)
 		{
@@ -1721,9 +1717,8 @@ dwarf2out_frame_debug_expr (rtx expr)
 	      gcc_assert (frame_pointer_needed);
 
 	      gcc_assert (REG_P (XEXP (src, 0))
-			  && dwf_regno (XEXP (src, 0)) == cur_cfa->reg
-			  && CONST_INT_P (XEXP (src, 1)));
-	      offset = INTVAL (XEXP (src, 1));
+			  && dwf_regno (XEXP (src, 0)) == cur_cfa->reg);
+	      offset = rtx_to_poly_int64 (XEXP (src, 1));
 	      if (GET_CODE (src) != MINUS)
 		offset = -offset;
 	      cur_cfa->offset += offset;
@@ -1736,11 +1731,11 @@ dwarf2out_frame_debug_expr (rtx expr)
 	      /* Rule 4 */
 	      if (REG_P (XEXP (src, 0))
 		  && dwf_regno (XEXP (src, 0)) == cur_cfa->reg
-		  && CONST_INT_P (XEXP (src, 1)))
+		  && poly_int_const_p (XEXP (src, 1), &offset))
 		{
 		  /* Setting a temporary CFA register that will be copied
 		     into the FP later on.  */
-		  offset = - INTVAL (XEXP (src, 1));
+		  offset = -offset;
 		  cur_cfa->offset += offset;
 		  cur_cfa->reg = dwf_regno (dest);
 		  /* Or used to save regs to the stack.  */
@@ -1762,11 +1757,11 @@ dwarf2out_frame_debug_expr (rtx expr)
 		}
 
 	      /* Rule 9 */
-	      else if (GET_CODE (src) == LO_SUM
-		       && CONST_INT_P (XEXP (src, 1)))
+	      else if (GET_CODE (src) == LO_SUM)
 		{
 		  cur_trace->cfa_temp.reg = dwf_regno (dest);
-		  cur_trace->cfa_temp.offset = INTVAL (XEXP (src, 1));
+		  cur_trace->cfa_temp.offset
+		    = rtx_to_poly_int64 (XEXP (src, 1));
 		}
 	      else
 		gcc_unreachable ();
@@ -1844,9 +1839,7 @@ dwarf2out_frame_debug_expr (rtx expr)
 	case PRE_MODIFY:
 	case POST_MODIFY:
 	  /* We can't handle variable size modifications.  */
-	  gcc_assert (GET_CODE (XEXP (XEXP (XEXP (dest, 0), 1), 1))
-		      == CONST_INT);
-	  offset = -INTVAL (XEXP (XEXP (XEXP (dest, 0), 1), 1));
+	  offset = -rtx_to_poly_int64 (XEXP (XEXP (XEXP (dest, 0), 1), 1));
 
 	  gcc_assert (REGNO (XEXP (XEXP (dest, 0), 0)) == STACK_POINTER_REGNUM
 		      && cur_trace->cfa_store.reg == dw_stack_pointer_regnum);
@@ -1904,9 +1897,8 @@ dwarf2out_frame_debug_expr (rtx expr)
 	  {
 	    unsigned int regno;
 
-	    gcc_assert (CONST_INT_P (XEXP (XEXP (dest, 0), 1))
-			&& REG_P (XEXP (XEXP (dest, 0), 0)));
-	    offset = INTVAL (XEXP (XEXP (dest, 0), 1));
+	    gcc_assert (REG_P (XEXP (XEXP (dest, 0), 0)));
+	    offset = rtx_to_poly_int64 (XEXP (XEXP (dest, 0), 1));
 	    if (GET_CODE (XEXP (dest, 0)) == MINUS)
 	      offset = -offset;
 
@@ -2935,7 +2927,8 @@ static void
 initial_return_save (rtx rtl)
 {
   unsigned int reg = INVALID_REGNUM;
-  HOST_WIDE_INT offset = 0;
+  poly_int64 offset = 0;
+  rtx base;
 
   switch (GET_CODE (rtl))
     {
@@ -2946,28 +2939,9 @@ initial_return_save (rtx rtl)
 
     case MEM:
       /* RA is on the stack.  */
-      rtl = XEXP (rtl, 0);
-      switch (GET_CODE (rtl))
-	{
-	case REG:
-	  gcc_assert (REGNO (rtl) == STACK_POINTER_REGNUM);
-	  offset = 0;
-	  break;
-
-	case PLUS:
-	  gcc_assert (REGNO (XEXP (rtl, 0)) == STACK_POINTER_REGNUM);
-	  offset = INTVAL (XEXP (rtl, 1));
-	  break;
-
-	case MINUS:
-	  gcc_assert (REGNO (XEXP (rtl, 0)) == STACK_POINTER_REGNUM);
-	  offset = -INTVAL (XEXP (rtl, 1));
-	  break;
-
-	default:
-	  gcc_unreachable ();
-	}
-
+      base = strip_offset (XEXP (rtl, 0), &offset);
+      gcc_assert (REG_P (base));
+      gcc_assert (REGNO (base) == STACK_POINTER_REGNUM);
       break;
 
     case PLUS:
