@@ -3606,7 +3606,7 @@ fold_rtx (rtx x, rtx_insn *insn)
 	      enum rtx_code associate_code;
 
 	      if (is_shift
-		  && (INTVAL (const_arg1) >= GET_MODE_PRECISION (mode)
+		  && (INTVAL (const_arg1) >= GET_MODE_UNIT_PRECISION (mode)
 		      || INTVAL (const_arg1) < 0))
 		{
 		  if (SHIFT_COUNT_TRUNCATED)
@@ -3655,7 +3655,7 @@ fold_rtx (rtx x, rtx_insn *insn)
                 break;
 
 	      if (is_shift
-		  && (INTVAL (inner_const) >= GET_MODE_PRECISION (mode)
+		  && (INTVAL (inner_const) >= GET_MODE_UNIT_PRECISION (mode)
 		      || INTVAL (inner_const) < 0))
 		{
 		  if (SHIFT_COUNT_TRUNCATED)
@@ -3686,7 +3686,7 @@ fold_rtx (rtx x, rtx_insn *insn)
 
 	      if (is_shift
 		  && CONST_INT_P (new_const)
-		  && INTVAL (new_const) >= GET_MODE_PRECISION (mode))
+		  && INTVAL (new_const) >= GET_MODE_UNIT_PRECISION (mode))
 		{
 		  /* As an exception, we can turn an ASHIFTRT of this
 		     form into a shift of the number of bits - 1.  */
