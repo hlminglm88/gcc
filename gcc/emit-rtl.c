@@ -1678,6 +1678,7 @@ subreg_lowpart_p (const_rtx x)
 					 GET_MODE (SUBREG_REG (x))),
 		  SUBREG_BYTE (x));
 }
+
 /* Given that a subreg has outer mode OUTERMODE and inner mode INNERMODE,
    return the mode that is big enough to hold both the outer and inner
    values.  Prefer the outer mode in the event of a tie.  */
