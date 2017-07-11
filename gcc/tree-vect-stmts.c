@@ -4195,8 +4195,10 @@ vectorizable_conversion (gimple *stmt, gimple_stmt_iterator *gsi,
      needs to be generated.  */
   gcc_assert (ncopies >= 1);
 
-  machine_mode lhs_mode = SCALAR_TYPE_MODE (lhs_type);
-  machine_mode rhs_mode = SCALAR_TYPE_MODE (rhs_type);
+  bool found_mode = false;
+  scalar_mode lhs_mode = SCALAR_TYPE_MODE (lhs_type);
+  scalar_mode rhs_mode = SCALAR_TYPE_MODE (rhs_type);
+  opt_scalar_mode rhs_mode_iter;
 
   /* Supportable by target?  */
   switch (modifier)
@@ -4230,8 +4232,9 @@ vectorizable_conversion (gimple *stmt, gimple_stmt_iterator *gsi,
 	goto unsupported;
 
       fltsz = GET_MODE_SIZE (lhs_mode);
-      FOR_EACH_2XWIDER_MODE (rhs_mode, rhs_mode)
+      FOR_EACH_2XWIDER_MODE (rhs_mode_iter, rhs_mode)
 	{
+	  rhs_mode = *rhs_mode_iter;
 	  if (GET_MODE_SIZE (rhs_mode) > fltsz)
 	    break;
 
@@ -4258,10 +4261,13 @@ vectorizable_conversion (gimple *stmt, gimple_stmt_iterator *gsi,
 	  if (supportable_widening_operation (NOP_EXPR, stmt, cvt_type,
 					      vectype_in, &code1, &code2,
 					      &multi_step_cvt, &interm_types))
-	    break;
+	    {
+	      found_mode = true;
+	      break;
+	    }
 	}
 
-      if (rhs_mode == VOIDmode || GET_MODE_SIZE (rhs_mode) > fltsz)
+      if (!found_mode)
 	goto unsupported;
 
       if (GET_MODE_SIZE (rhs_mode) == fltsz)
