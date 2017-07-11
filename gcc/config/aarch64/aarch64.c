@@ -11291,7 +11291,7 @@ aarch64_simd_container_mode (machine_mode mode, unsigned width)
 
 /* Return 128-bit container as the preferred SIMD mode for MODE.  */
 static machine_mode
-aarch64_preferred_simd_mode (machine_mode mode)
+aarch64_preferred_simd_mode (scalar_mode mode)
 {
   return aarch64_simd_container_mode (mode, 128);
 }
