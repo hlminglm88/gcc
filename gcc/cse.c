@@ -4884,11 +4884,12 @@ cse_insn (rtx_insn *insn)
 	  && GET_CODE (src) == AND && CONST_INT_P (XEXP (src, 1))
 	  && GET_MODE_SIZE (int_mode) < UNITS_PER_WORD)
 	{
-	  machine_mode tmode;
+	  opt_scalar_int_mode tmode_iter;
 	  rtx new_and = gen_rtx_AND (VOIDmode, NULL_RTX, XEXP (src, 1));
 
-	  FOR_EACH_WIDER_MODE (tmode, int_mode)
+	  FOR_EACH_WIDER_MODE (tmode_iter, int_mode)
 	    {
+	      scalar_int_mode tmode = *tmode_iter;
 	      if (GET_MODE_SIZE (tmode) > UNITS_PER_WORD)
 		break;
 
@@ -4931,7 +4932,6 @@ cse_insn (rtx_insn *insn)
 	{
 	  struct rtx_def memory_extend_buf;
 	  rtx memory_extend_rtx = &memory_extend_buf;
-	  machine_mode tmode;
 
 	  /* Set what we are trying to extend and the operation it might
 	     have been extended with.  */
@@ -4939,10 +4939,12 @@ cse_insn (rtx_insn *insn)
 	  PUT_CODE (memory_extend_rtx, extend_op);
 	  XEXP (memory_extend_rtx, 0) = src;
 
-	  FOR_EACH_WIDER_MODE (tmode, int_mode)
+	  opt_scalar_int_mode tmode_iter;
+	  FOR_EACH_WIDER_MODE (tmode_iter, int_mode)
 	    {
 	      struct table_elt *larger_elt;
 
+	      scalar_int_mode tmode = *tmode_iter;
 	      if (GET_MODE_SIZE (tmode) > UNITS_PER_WORD)
 		break;
 
